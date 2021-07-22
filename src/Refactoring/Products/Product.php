@@ -5,6 +5,7 @@ namespace Refactoring\Products;
 use Brick\Math\BigDecimal;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
+use Services\ProductService;
 
 class Product
 {
@@ -34,19 +35,26 @@ class Product
     private $counter;
 
     /**
+     * @var ProductService
+     */
+    private $productService;
+
+    /**
      * Product constructor.
      * @param BigDecimal|null $price
      * @param string|null $desc
      * @param string|null $longDesc
      * @param int|null $counter
      */
-    public function __construct(?BigDecimal $price, ?string $desc, ?string $longDesc, ?int $counter)
+    public function __construct(?BigDecimal $price, ?string $desc, ?string $longDesc, ?int $counter, ProductService $productService)
     {
         $this->serialNumber = Uuid::uuid4();
         $this->price = $price;
         $this->desc = $desc;
         $this->longDesc = $longDesc;
         $this->counter = $counter;
+
+        $this->productService = $productService;
     }
 
     /**
@@ -94,20 +102,20 @@ class Product
      */
     public function decrementCounter(): void
     {
-        if ($this->price != null && $this->price->getSign() > 0) {
-            if ($this->counter === null) {
-                throw new \Exception("null counter");
-            }
 
-            $this->counter = $this->counter - 1;
+        try {
+            $this->productService->checkValidPrice($this->price);
+            $this->productService->checkNullCounter($this->counter);
 
-            if ($this->counter < 0) {
-                throw new \Exception("Negative counter");
-            }
-        } else {
-            throw new \Exception("Invalid price");
+            $this->counter--;
 
+            $this->productService->checkNegativeCounter($this->counter);
+
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
+            //log
         }
+
     }
 
     /**
@@ -115,18 +123,17 @@ class Product
      */
     public function incrementCounter(): void
     {
-        if ($this->price != null && $this->price->getSign() > 0) {
-            if ($this->counter === null) {
-                throw new \Exception("null counter");
-            }
+        try {
+            $this->productService->checkValidPrice($this->price);
+            $this->productService->checkNullCounter($this->counter);
 
-            if ($this->counter + 1 < 0) {
-                throw new \Exception("Negative counter");
-            }
+            $this->counter++;
 
-            $this->counter = $this->counter + 1;
-        } else {
-            throw new \Exception("Invalid price");
+            $this->productService->checkNegativeCounter($this->counter);
+
+        } catch (Exception $e) {
+            throw new \Exception($e->getMessage());
+            //log
         }
     }
 
@@ -136,16 +143,19 @@ class Product
      */
     public function changePriceTo(?BigDecimal $newPrice): void
     {
-        if ($this->counter === null) {
-            throw new \Exception("null counter");
-        }
+        try {
+            $this->productService->checkNullCounter($this->counter);
 
-        if ($this->counter > 0) {
-            if ($newPrice === null) {
-                throw new \Exception("new price null");
+            if ($this->counter > 0) {
+
+                $this->productService->checkNullPrice($newPrice);
+
+                $this->price = $newPrice;
             }
 
-            $this->price = $newPrice;
+        } catch (Exception $e) {
+            throw new \Exception($e->getMessage());
+            //log
         }
     }
 
@@ -156,7 +166,7 @@ class Product
      */
     public function replaceCharFromDesc(?string $charToReplace, ?string $replaceWith): void
     {
-        if ($this->longDesc === null || empty($this->longDesc) || $this->desc === null || empty($this->desc)) {
+        if ($this->productService->checkEmptyDesc($this->desc, $this->longDesc)) {
             throw new \Exception("null or empty desc");
         }
 
@@ -168,7 +178,7 @@ class Product
      * @return string
      */
     public function formatDesc(): string {
-        if ($this->longDesc === null || empty($this->longDesc) || $this->desc === null || empty($this->desc)) {
+        if ($this->productService->checkEmptyDesc($this->desc, $this->longDesc)) {
             return "";
         }
 

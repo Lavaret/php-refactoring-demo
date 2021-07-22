@@ -1,0 +1,9 @@
+metody incrementCounter i decrementCounter powielają część kodu można sprawdzanie można zrobić w osobnym serwisie,
+
+metoda changePriceTo powinna być w osobnym serwisie
+
+metoda replaceCharFromDesc powinna być w osobnym serwisie do tego wyrzucany wyjątek jest błędny, powinien wskazywać jednoznacznie,
+który opis (longDesc czy desc) jest pusty
+
+formatDesc mamy tutaj powtórzenie kodu z poprzedniej metody
+
